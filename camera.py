@@ -1,6 +1,7 @@
 import cv2
 import time
 import numpy as np
+import logging
 from threading import Thread, Lock
 from PIL import Image
 from config import FRAME_SKIP, RECOG_INTERVAL
@@ -10,6 +11,43 @@ from embeddings import mtcnn, get_embedding_from_crop, recognize
 # ─── Scale factor for detection (lower = faster, less accurate) ───
 DETECT_SCALE = 0.5        # process detection at half resolution
 USE_FAST_TRACKER = True    # use MOSSE instead of KCF (much faster)
+MIN_DETECTION_CONFIDENCE = 0.9
+
+logger = logging.getLogger(__name__)
+
+
+def create_tracker():
+    """Create the fastest available OpenCV tracker for the installed build."""
+    tracker_factories = (
+        ("legacy.TrackerMOSSE_create", lambda: cv2.legacy.TrackerMOSSE_create()),
+        ("legacy.TrackerKCF_create", lambda: cv2.legacy.TrackerKCF_create()),
+        ("TrackerKCF_create", lambda: cv2.TrackerKCF_create()),
+    )
+    if not USE_FAST_TRACKER:
+        tracker_factories = tracker_factories[1:]
+
+    for factory_name, factory in tracker_factories:
+        try:
+            return factory()
+        except AttributeError:
+            logger.debug("OpenCV tracker factory unavailable: %s", factory_name)
+
+    logger.error("No supported OpenCV tracker factory is available. Install opencv-contrib-python.")
+    return None
+
+
+def crop_rgb_frame(rgb, x, y, w, h):
+    """Return a clamped PIL crop from an RGB frame, or None if the crop is invalid."""
+    frame_h, frame_w = rgb.shape[:2]
+    x1 = max(0, x)
+    y1 = max(0, y)
+    x2 = min(frame_w, x + w)
+    y2 = min(frame_h, y + h)
+
+    if x2 <= x1 or y2 <= y1:
+        return None
+
+    return Image.fromarray(rgb[y1:y2, x1:x2])
 
 
 def enroll_face(pil_img, database):
@@ -41,7 +79,7 @@ def enroll_face(pil_img, database):
 def remove_face(database):
     """Interactive deletion of a person from the database."""
     list_people(database)
-    if not database:
+    if not get_people(database):
         return
     name = input("Enter name to delete: ").strip()
     if not name:
@@ -64,11 +102,12 @@ class AsyncDetector:
 
     def submit(self, frame_bgr, frame_rgb):
         """Submit a new frame for detection (non-blocking)."""
-        if self._busy:
-            return  # skip if still processing
-        self._busy = True
-        self._frame_bgr = frame_bgr.copy()
-        self._frame_rgb = frame_rgb
+        with self._lock:
+            if self._busy:
+                return  # skip if still processing
+            self._busy = True
+            self._frame_bgr = frame_bgr.copy()
+            self._frame_rgb = frame_rgb.copy()
         Thread(target=self._detect, daemon=True).start()
 
     def _detect(self):
@@ -95,7 +134,7 @@ class AsyncDetector:
                 pil_full = Image.fromarray(rgb)
 
                 for box, prob in zip(boxes, probs):
-                    if prob < 0.9:
+                    if prob < MIN_DETECTION_CONFIDENCE:
                         continue
                     x1 = int(box[0] * scale_x)
                     y1 = int(box[1] * scale_y)
@@ -190,10 +229,9 @@ def run():
             for (x1, y1, x2, y2), emb in zip(det_boxes, det_embs):
                 w, h = x2 - x1, y2 - y1
 
-                if USE_FAST_TRACKER:
-                    tracker = cv2.legacy.TrackerMOSSE_create()
-                else:
-                    tracker = cv2.TrackerKCF_create()
+                tracker = create_tracker()
+                if tracker is None:
+                    continue
 
                 tracker.init(frame, (x1, y1, w, h))
                 trackers.append(tracker)
@@ -217,12 +255,13 @@ def run():
 
             # Re-recognize periodically (in main thread, but only on crop)
             if frame_count % RECOG_INTERVAL == 0 and database:
-                pil_crop = Image.fromarray(rgb[max(0,y):y+h, max(0,x):x+w])
-                emb = get_embedding_from_crop(pil_crop)
-                if emb is not None:
-                    name, score = recognize(emb, database)
-                    color = (0, 255, 0) if name != "Unknown" else (0, 0, 255)
-                    labels[i] = (f"{name}  {score:.2f}", color)
+                pil_crop = crop_rgb_frame(rgb, x, y, w, h)
+                if pil_crop is not None:
+                    emb = get_embedding_from_crop(pil_crop)
+                    if emb is not None:
+                        name, score = recognize(emb, database)
+                        color = (0, 255, 0) if name != "Unknown" else (0, 0, 255)
+                        labels[i] = (f"{name}  {score:.2f}", color)
 
             label, color = labels[i]
             cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)

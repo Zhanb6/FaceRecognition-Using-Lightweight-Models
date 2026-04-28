@@ -9,9 +9,12 @@ Supports multiple backbones (selected via BACKBONE in config.py):
 
 import torch
 import numpy as np
+import logging
 from PIL import Image
 from facenet_pytorch import MTCNN
 from config import THRESHOLD, MODEL_NAME, MIN_FACE_SIZE, BACKBONE
+
+logger = logging.getLogger(__name__)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using: {device}")
@@ -64,20 +67,20 @@ def get_embedding_from_crop(face_crop_pil):
         with torch.no_grad():
             emb = model(face_tensor.unsqueeze(0).to(device))
         return normalize(emb[0].cpu().numpy())
-    except Exception as e:
-        print(f"Embedding error: {e}")
+    except Exception:
+        logger.exception("Embedding extraction failed")
         return None
 
 
 def recognize(embedding, database):
     """Compare embedding against all stored vectors using cosine similarity."""
     best_name, best_score = "Unknown", 0.0
+    query = normalize(np.array(embedding).flatten())
     for name, vectors in database.items():
         if name.startswith('__'):
             continue
         for vec in vectors:
             stored = normalize(np.array(vec).flatten())
-            query  = normalize(np.array(embedding).flatten())
             score  = float(np.dot(query, stored))
             if score > best_score:
                 best_score, best_name = score, name

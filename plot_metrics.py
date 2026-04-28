@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import numpy as np
 import seaborn as sns
 import pandas as pd
 
@@ -25,7 +24,6 @@ sns.set_theme(style="whitegrid")
 plt.figure(figsize=(9, 6))
 
 models = df['Model']
-x = np.arange(len(models))
 
 # Строим линии для каждой метрики
 plt.plot(models, df['Precision'], marker='o', linewidth=2.5, markersize=10, 

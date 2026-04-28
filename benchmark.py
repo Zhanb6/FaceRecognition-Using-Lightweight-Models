@@ -145,12 +145,12 @@ def print_comparison(results):
         print(f"    {medal} {name:<25} → {score:.2f}")
 
 
-def save_results(results, path="benchmark_results.txt"):
+def save_results(results, path="benchmark_results.txt", num_runs=200):
     """Persist results to a text file."""
     with open(path, 'w') as f:
         f.write("BENCHMARK RESULTS — Face Recognition Models\n")
         f.write(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}\n")
-        f.write(f"Runs per model: 200\n")
+        f.write(f"Runs per model: {num_runs}\n")
         f.write(f"{'=' * 60}\n\n")
 
         for r in results:

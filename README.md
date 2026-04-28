@@ -10,6 +10,7 @@ Diploma/
 ├── embeddings.py      # Model loading, embedding extraction, recognition
 ├── database.py        # Face database load/save operations
 ├── config.py          # All configurable parameters
+├── requirements.txt   # Python dependencies
 ├── benchmark.py       # Performance & Energy efficiency testing tool
 ├── faces_database.pkl # Stored face embeddings (auto-generated)
 └── README.md
@@ -52,11 +53,7 @@ source venv/bin/activate        # macOS/Linux
 
 **3. Install dependencies**
 ```bash
-pip install torch==2.2.2 torchvision==0.17.2
-pip install facenet-pytorch
-pip install "numpy>=1.24.0,<2.0.0"
-pip install "opencv-contrib-python==4.8.1.78"
-pip install Pillow
+pip install -r requirements.txt
 ```
 
 ## Usage
@@ -71,6 +68,8 @@ python main.py
 | Key | Action |
 |-----|--------|
 | `E` | Enroll a new face (type name in terminal) |
+| `D` | Delete an enrolled person |
+| `L` | List enrolled people |
 | `Q` | Quit |
 
 **Enrolling a face**
@@ -86,10 +85,11 @@ All parameters are in `config.py`:
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `FRAME_SKIP` | `5` | Run face detection every N frames |
-| `RECOG_INTERVAL` | `5` | Re-recognize every N frames |
+| `BACKBONE` | `facenet` | Recognition model: `facenet`, `mobilefacenet`, or `efficientnet_lite0` |
+| `FRAME_SKIP` | `15` | Run face detection every N frames |
+| `RECOG_INTERVAL` | `15` | Re-recognize every N frames |
 | `THRESHOLD` | `0.7` | Minimum cosine similarity to confirm identity |
-| `MIN_FACE_SIZE` | `80` | Minimum face size in pixels to detect |
+| `MIN_FACE_SIZE` | `120` | Minimum face size in pixels to detect |
 | `MODEL_NAME` | `vggface2` | Pretrained weights to use |
 | `DB_FILE` | `faces_database.pkl` | Path to face database file |
 
@@ -148,4 +148,3 @@ Tested on MacBook Pro (Apple M-series), CPU only:
 ```bash
 source venv/bin/activate && python main.py
 ```
-
