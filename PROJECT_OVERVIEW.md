@@ -27,6 +27,7 @@ Diploma/
 ├── database.py
 ├── download_weights.py
 ├── embeddings.py
+├── facenet_recognition.py
 ├── faces_database.pkl
 ├── faces_database_backup_512d.pkl
 ├── image_2026-01-25_23-07-15.png
@@ -64,6 +65,7 @@ Key files and responsibilities:
 - `main.py`: CLI entry point.
 - `camera.py`: OpenCV loop, key controls, enrollment/deletion/listing interactions, async detection, tracker updates.
 - `embeddings.py`: detector/model initialization, input preprocessing, embedding extraction, cosine recognition.
+- `facenet_recognition.py`: standalone FaceNet/VGGFace2 webcam recognizer with enrollment, deletion, listing, and a FaceNet-only pickle database.
 - `database.py`: load/save/add/delete/list helpers for pickle-backed embedding storage.
 - `config.py`: backbone, camera cadence, recognition threshold, database path, FaceNet model name.
 - `models/facenet.py`: wrapper around `facenet_pytorch.InceptionResnetV1`.
@@ -147,3 +149,5 @@ python download_weights.py
 - `README.md` — aligned setup instructions, keyboard controls, and configuration defaults with the current code.
 - `main.py` — configured application logging so runtime errors logged by modules are visible.
 - `lol.js` — removed unrelated untracked JavaScript automation code that was not part of the Python face-recognition project.
+- `facenet_recognition.py` — added a complete standalone FaceNet/VGGFace2 recognition script with webcam detection, enrollment, deletion, listing, and local database persistence.
+- `README.md` — documented the recommended FaceNet-only launch command.

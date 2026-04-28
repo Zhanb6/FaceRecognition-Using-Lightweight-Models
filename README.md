@@ -58,6 +58,11 @@ pip install -r requirements.txt
 
 ## Usage
 
+**Recommended FaceNet-only script**
+```bash
+python facenet_recognition.py
+```
+
 **Run the system**
 ```bash
 python main.py
@@ -73,7 +78,7 @@ python main.py
 | `Q` | Quit |
 
 **Enrolling a face**
-1. Run `python main.py`
+1. Run `python facenet_recognition.py`
 2. Make sure your face is visible in the camera
 3. Press `E` in the camera window
 4. Type your name in the terminal and press Enter
